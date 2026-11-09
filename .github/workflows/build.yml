@@ -43,7 +43,9 @@ jobs:
           make -C Project_CTR/makerom -j4
           cp "$(find Project_CTR/makerom -type f -name makerom | head -1)" /usr/local/bin/makerom
           git clone --recursive --depth 1 https://github.com/RedTopper/bannertool.git
-          make -C bannertool -j4
+          apt-get install -y libpng-dev zlib1g-dev || true
+          cmake -S bannertool -B bannertool/build -DCMAKE_BUILD_TYPE=Release
+          cmake --build bannertool/build -j4
           cp "$(find bannertool -type f -name bannertool -perm -u+x | head -1)" /usr/local/bin/bannertool
           git clone --recursive --depth 1 https://github.com/dnasdw/3dstool.git
           cmake -S 3dstool -B 3dstool/build -DCMAKE_BUILD_TYPE=Release
