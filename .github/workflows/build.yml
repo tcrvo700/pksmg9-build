@@ -42,7 +42,7 @@ jobs:
           make -C Project_CTR/makerom deps -j4
           make -C Project_CTR/makerom -j4
           cp "$(find Project_CTR/makerom -type f -name makerom | head -1)" /usr/local/bin/makerom
-          git clone --recursive --depth 1 https://github.com/Steveice10/bannertool.git
+          git clone --recursive --depth 1 https://github.com/RedTopper/bannertool.git
           make -C bannertool -j4
           cp "$(find bannertool -type f -name bannertool -perm -u+x | head -1)" /usr/local/bin/bannertool
           git clone --recursive --depth 1 https://github.com/dnasdw/3dstool.git
