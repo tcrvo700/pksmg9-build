@@ -17,8 +17,21 @@ jobs:
           apt-get update
           apt-get install -y git rsync python3 python3-pip cmake build-essential pkg-config zip unzip libssl-dev libcurl4-openssl-dev
           pip3 install GitPython --break-system-packages || pip3 install GitPython
-          dkp-pacman -Syu --noconfirm
-          dkp-pacman -S --noconfirm --needed 3ds-dev 3ds-curl 3ds-bzip2 3ds-mpg123 3ds-pkg-config 3dstools tex3ds
+                   curl -sI https://pkg.devkitpro.org/packages/dkp-libs.db | head -5 || true
+          MISSING=""
+          for pkg in libctru citro3d citro2d 3ds-curl 3ds-bzip2 3ds-mpg123 3ds-pkg-config 3dstools tex3ds; do
+            if dkp-pacman -Qq "$pkg" >/dev/null 2>&1; then echo "$pkg already installed"; else MISSING="$MISSING $pkg"; fi
+          done
+          echo "Missing packages: $MISSING"
+          if [ -n "$MISSING" ]; then
+            ok=0
+            for i in 1 2 3 4 5; do
+              if dkp-pacman -Sy --noconfirm --needed $MISSING; then ok=1; break; fi
+              echo "Attempt $i failed, waiting 60 seconds"
+              sleep 60
+            done
+            [ "$ok" = "1" ] || exit 1
+          fi
 
       - name: Build makerom, bannertool and 3dstool from source
         run: |
