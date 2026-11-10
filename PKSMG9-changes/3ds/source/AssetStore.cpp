@@ -102,26 +102,50 @@ namespace
         return hash.finish() == asset.hash ? AssetStore::Verdict::Ok : AssetStore::Verdict::Stale;
     }
 
-    s32 fetch(const Asset& asset)
+    // PKSMG9 never goes online for its picture sheets. If they are not in /3ds/PKSMG9/assets,
+    // copy them from the original PKSM's folder (/3ds/PKSM/assets) on the same SD card.
+    s32 copyFromOriginal(const Asset& asset)
     {
-        u32 status;
-        ACU_GetWifiStatus(&status);
-        if (status == 0)
+        static constexpr char OWN[]      = "/3ds/PKSMG9/";
+        static constexpr char ORIGINAL[] = "/3ds/PKSM/";
+        std::string src                  = asset.path;
+        const auto pos                   = src.find(OWN);
+        if (pos == std::string::npos)
         {
             return -1;
         }
-        // The CDN turns some consoles away outright (HTTP 403) while the mirror serves them
-        // fine. Whichever one answers, what it wrote is hashed before it is trusted.
-        s32 res = -1;
-        for (const auto& url : asset.urls)
+        src.replace(pos, sizeof(OWN) - 1, ORIGINAL);
+
+        FILE* in = fopen(src.c_str(), "rb");
+        if (!in)
         {
-            res = Fetch::download(url, asset.path);
-            if (R_SUCCEEDED(res))
+            return -1;
+        }
+        FILE* out = fopen(asset.path.c_str(), "wb");
+        if (!out)
+        {
+            fclose(in);
+            return -1;
+        }
+        std::vector<u8> chunk(AssetStore::CHUNK_SIZE);
+        bool ok = true;
+        size_t got;
+        while ((got = fread(chunk.data(), 1, chunk.size(), in)) > 0)
+        {
+            if (fwrite(chunk.data(), 1, got, out) != got)
             {
+                ok = false;
                 break;
             }
         }
-        return res;
+        fclose(in);
+        fclose(out);
+        if (!ok)
+        {
+            std::remove(asset.path.c_str());
+            return -1;
+        }
+        return 0;
     }
 }
 
@@ -154,7 +178,7 @@ s32 AssetStore::ensure()
             {
                 std::remove(asset.path.c_str());
             }
-            if (const s32 res = fetch(asset); R_FAILED(res))
+            if (const s32 res = copyFromOriginal(asset); R_FAILED(res))
             {
                 // Nothing else was inspected, so there is no verdict to leave behind.
                 mVerdict.reset();

@@ -121,8 +121,9 @@ namespace
     {
         if (name == "assets")
         {
-            return "Additional assets download failed.\n\nAlways make sure you're connected to "
-                   "the internet and on the latest version.";
+            return "PKSMG9 picture files are missing.\n\nCopy pkm_spritesheet.t3x and "
+                   "types_spritesheet.t3x\nfrom /3ds/PKSM/assets to /3ds/PKSMG9/assets.\n\n"
+                   "(PKSMG9 never uses the internet to start.)";
         }
         return std::format("{:s} failed to initialize.", name);
     }
@@ -796,18 +797,11 @@ Result App::init(const std::string& execPath)
     }
 
     // Not lifetime: two decisions that can end this run by rebooting into a new build.
+    // PKSMG9 is offline: a different asset version only gets logged, it never starts a download
+    // or an update and never stops the app.
     if (assetStore.verdict() != AssetStore::Verdict::Ok)
     {
-        Gui::warn("Additional assets are not correct.\nPress A to start PKSM update");
-        if (!update(execPath))
-        {
-            Gui::warn("PKSM update failed.\nTry downloading assets manually before restarting.");
-            return -1;
-        }
-        else
-        {
-            return rebootToPKSM(execPath);
-        }
+        Logging::warning("Assets differ from the expected version; continuing offline");
     }
     Logging::startupLog("gui", "assets match");
 
